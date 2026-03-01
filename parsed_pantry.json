@@ -1,0 +1,220 @@
+{
+  "items": [
+    {
+      "name": "Bottle gourd",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Cabbage",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Carrot",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Carrot Red",
+      "quantity": 1.0,
+      "unit": "for raw eating",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Cauliflower",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Chaudi",
+      "quantity": 1.0,
+      "unit": "Sabji",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Chilli Long",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Cucumber",
+      "quantity": 9.0,
+      "unit": "unit",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Eggplant",
+      "quantity": 5.0,
+      "unit": "unit",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Garlic",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Gooseberries",
+      "quantity": 1.0,
+      "unit": "amla",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Okra",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Vegetables"
+    },
+    {
+      "name": "Coriander",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Leafy Greens & Herbs"
+    },
+    {
+      "name": "Curry Leaves",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Leafy Greens & Herbs"
+    },
+    {
+      "name": "Methi",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Leafy Greens & Herbs"
+    },
+    {
+      "name": "Mint",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Leafy Greens & Herbs"
+    },
+    {
+      "name": "Spinach",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Leafy Greens & Herbs"
+    },
+    {
+      "name": "Apple",
+      "quantity": 5.0,
+      "unit": "unit",
+      "category": "Fruits"
+    },
+    {
+      "name": "Banana",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Fruits"
+    },
+    {
+      "name": "Blueberries",
+      "quantity": 2.0,
+      "unit": "servings",
+      "category": "Fruits"
+    },
+    {
+      "name": "Cantaloupe",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Fruits"
+    },
+    {
+      "name": "Oranges",
+      "quantity": 10.0,
+      "unit": "unit",
+      "category": "Fruits"
+    },
+    {
+      "name": "Strawberries",
+      "quantity": 6.0,
+      "unit": "oz",
+      "category": "Fruits"
+    },
+    {
+      "name": "Eggs",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Dairy & Eggs"
+    },
+    {
+      "name": "Kirkland egg whites",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Dairy & Eggs"
+    },
+    {
+      "name": "Milk",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Dairy & Eggs"
+    },
+    {
+      "name": "Paneer",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Dairy & Eggs"
+    },
+    {
+      "name": "Yogurt",
+      "quantity": 2.0,
+      "unit": "kg",
+      "category": "Dairy & Eggs"
+    },
+    {
+      "name": "Frozen karela",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Frozen & Refrigerated"
+    },
+    {
+      "name": "Frozen tindoda",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Frozen & Refrigerated"
+    },
+    {
+      "name": "Grana Valor frozen",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Frozen & Refrigerated"
+    },
+    {
+      "name": "Olives",
+      "quantity": 1.7,
+      "unit": "lb",
+      "category": "Frozen & Refrigerated"
+    },
+    {
+      "name": "Chana masala",
+      "quantity": 5.0,
+      "unit": "packs",
+      "category": "Pantry & Snacks"
+    },
+    {
+      "name": "Deep Plantain Chips",
+      "quantity": 200.0,
+      "unit": "GM",
+      "category": "Pantry & Snacks"
+    },
+    {
+      "name": "Maggie",
+      "quantity": 1.0,
+      "unit": "unit",
+      "category": "Pantry & Snacks"
+    },
+    {
+      "name": "Bread",
+      "quantity": 1.0,
+      "unit": "homemade - good for next week",
+      "category": "Bakery"
+    }
+  ]
+}

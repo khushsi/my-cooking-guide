@@ -9,6 +9,7 @@ export default function PantryPage() {
     const router = useRouter();
     const [pantry, setPantry] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -57,6 +58,23 @@ export default function PantryPage() {
         }
     };
 
+    const handleFileUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        setError("");
+        try {
+            await api.scanPantryImage(file);
+            await fetchPantry();
+        } catch (err) {
+            setError(err.message || "Failed to scan image");
+        } finally {
+            setUploading(false);
+            e.target.value = ""; // Reset input
+        }
+    };
+
     // Group items by category
     const groupedPantry = pantry.reduce((acc, item) => {
         const cat = item.category || "Other";
@@ -79,9 +97,26 @@ export default function PantryPage() {
                         <button className="btn-link" onClick={() => router.push("/grocery-list")}>Grocery List</button>
                     </nav>
                 </div>
-                <button className={styles.addButton} onClick={() => alert("Add item modal coming soon!")}>
-                    + Add Item
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        id="magic-scan"
+                        style={{ display: 'none' }}
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                    />
+                    <label
+                        htmlFor="magic-scan"
+                        className={styles.addButton}
+                        style={{ backgroundColor: '#6c5ce7', cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.7 : 1, width: 'auto' }}
+                    >
+                        {uploading ? "✨ Scanning..." : "✨ Magic Scan"}
+                    </label>
+                    <button className={styles.addButton} onClick={() => alert("Add item modal coming soon!")}>
+                        + Add Manually
+                    </button>
+                </div>
             </div>
 
             {error && <div className={styles.error}>{error}</div>}

@@ -1,13 +1,11 @@
 """Persona router — managing individual profiles within a household."""
 
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from app.database import get_db
 from app.models.user import User
-from app.models.persona import Persona
 from app.routers.auth import get_current_user
 from app.schemas.persona import (
     PersonaCreate,
@@ -17,6 +15,7 @@ from app.schemas.persona import (
     PersonaTemplate,
     GENERIC_PERSONAS,
 )
+from app.services.persona_service import PersonaService
 
 router = APIRouter(prefix="/api/personas", tags=["personas"])
 
@@ -36,9 +35,8 @@ async def get_personas(
     db: AsyncSession = Depends(get_db),
 ):
     """Get all personas for the current user."""
-    query = select(Persona).where(Persona.user_id == current_user.id)
-    result = await db.execute(query)
-    return result.scalars().all()
+    persona_service = PersonaService(db)
+    return await persona_service.get_all_personas(current_user.id)
 
 
 @router.post("", response_model=PersonaResponse, status_code=status.HTTP_201_CREATED)
@@ -48,25 +46,8 @@ async def create_persona(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new personal profile under the current user's household."""
-    new_persona = Persona(
-        user_id=current_user.id,
-        name=data.name,
-        is_primary=data.is_primary,
-        template_name=data.template_name,
-        diet_type=data.diet_type,
-        allergies=data.allergies,
-        medical_conditions=data.medical_conditions,
-        disliked_ingredients=data.disliked_ingredients,
-        loved_ingredients=data.loved_ingredients,
-        spice_tolerance=data.spice_tolerance,
-        target_calories=data.target_calories,
-        height_cm=data.height_cm,
-        weight_kg=data.weight_kg,
-    )
-    db.add(new_persona)
-    await db.commit()
-    await db.refresh(new_persona)
-    return new_persona
+    persona_service = PersonaService(db)
+    return await persona_service.create_persona(current_user.id, data)
 
 
 @router.put("/{persona_id}", response_model=PersonaResponse)
@@ -77,23 +58,8 @@ async def update_persona(
     db: AsyncSession = Depends(get_db),
 ):
     """Update an existing personal profile (Progressive Profiling)."""
-    query = select(Persona).where(
-        Persona.id == persona_id, Persona.user_id == current_user.id
-    )
-    result = await db.execute(query)
-    persona = result.scalar_one_or_none()
-
-    if not persona:
-        raise HTTPException(status_code=404, detail="Persona not found")
-
-    # Update only provided fields
-    update_data = data.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(persona, key, value)
-
-    await db.commit()
-    await db.refresh(persona)
-    return persona
+    persona_service = PersonaService(db)
+    return await persona_service.update_persona(current_user.id, persona_id, data)
 
 
 @router.delete("/{persona_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -103,15 +69,6 @@ async def delete_persona(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete a personal profile."""
-    query = select(Persona).where(
-        Persona.id == persona_id, Persona.user_id == current_user.id
-    )
-    result = await db.execute(query)
-    persona = result.scalar_one_or_none()
-
-    if not persona:
-        raise HTTPException(status_code=404, detail="Persona not found")
-
-    await db.delete(persona)
-    await db.commit()
+    persona_service = PersonaService(db)
+    await persona_service.delete_persona(current_user.id, persona_id)
     return None

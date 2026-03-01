@@ -12,7 +12,7 @@ from app.schemas.grocery import (
 )
 from app.services.grocery_service import GroceryListService
 
-router = APIRouter(prefix="/grocery-list", tags=["grocery"])
+router = APIRouter(prefix="/api/grocery-list", tags=["grocery"])
 
 @router.get("", response_model=GroceryListResponse)
 async def get_grocery_list(

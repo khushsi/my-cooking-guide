@@ -128,8 +128,21 @@ export default function CalendarPage() {
     return (
         <main className={styles.container}>
             <header className={styles.header}>
-                <h1 className="section-title">Your Weekly Plan</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <h1 className="section-title">Your Weekly Plan</h1>
+                    <nav style={{ display: 'flex', gap: '15px' }}>
+                        <button className="btn-link" onClick={() => router.push("/pantry")}>Pantry</button>
+                        <button className="btn-link" onClick={() => router.push("/grocery-list")} style={{ color: 'var(--accent)' }}>Grocery List</button>
+                    </nav>
+                </div>
                 <div className={styles.statsBar}>
+                    <button
+                        className="btn btn-primary"
+                        style={{ marginRight: '20px', padding: '8px 16px', fontSize: '0.9rem' }}
+                        onClick={() => router.push("/grocery-list")}
+                    >
+                        View Shopping List
+                    </button>
                     <div className={styles.stat}>
                         <span className={styles.statLabel}>Avg Daily Cal</span>
                         <span className={styles.statValue}>{menu.days ? Math.round(menu.total_weekly_calories / 7) || 2000 : 2000}</span>

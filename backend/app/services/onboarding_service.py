@@ -5,31 +5,41 @@ from app.models.user import User
 from app.models.persona import Persona
 from app.models.menu import WeeklyMenu
 from app.schemas.user import UserOnboarding, UserProfile, UserResponse
+from app.schemas.persona import PersonaCreate
+from app.schemas.pantry import PantryItemCreate
 from app.services.gemini_service import generate_weekly_menu
+from app.services.persona_service import PersonaService
+from app.services.pantry_service import PantryService
 from app.utils.date_utils import get_current_saturday
 
 class OnboardingService:
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.persona_service = PersonaService(db)
+        self.pantry_service = PantryService(db)
 
     async def complete_onboarding(self, data: UserOnboarding, current_user: User) -> UserResponse:
         current_user.household_size = data.household_size
         current_user.diet_type = data.diet_type
-        current_user.allergies = data.allergies
-        current_user.pantry_staples = data.pantry_staples
-        current_user.meal_types = data.meal_types
         current_user.onboarding_complete = True
         
-        # Auto-create the primary persona
-        new_persona = Persona(
-            user_id=current_user.id,
+        # Create the primary persona using PersonaService
+        persona_data = PersonaCreate(
             name="Primary",
             is_primary=True,
             template_name=data.selected_persona_id,
             diet_type=data.diet_type,
-            allergies=data.allergies,
+            allergies=data.allergies or [],
         )
-        self.db.add(new_persona)
+        await self.persona_service.create_persona(current_user.id, persona_data)
+
+        # Create pantry items using PantryService
+        if data.pantry_staples:
+            pantry_items = [
+                PantryItemCreate(name=staple, category="Staples") 
+                for staple in data.pantry_staples
+            ]
+            await self.pantry_service.bulk_create_items(current_user.id, pantry_items)
 
         # Generate initial menu
         user_data = {
@@ -56,7 +66,6 @@ class OnboardingService:
             )
             self.db.add(initial_menu)
         except Exception as e:
-            # We log but allow onboarding to continue if AI fails
             print(f"Failed to generate initial menu during onboarding: {e}")
 
         await self.db.flush()

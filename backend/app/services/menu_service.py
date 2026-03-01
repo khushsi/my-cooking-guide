@@ -12,24 +12,33 @@ from app.schemas.menu import (
     MenuListResponse,
 )
 from app.services.gemini_service import generate_weekly_menu, swap_single_meal
+from app.services.persona_service import PersonaService
+from app.services.pantry_service import PantryService
 from app.utils.date_utils import get_current_saturday
 
 class MenuService:
     def __init__(self, db: AsyncSession):
         self.db = db
+        self.persona_service = PersonaService(db)
+        self.pantry_service = PantryService(db)
 
     async def generate_menu(self, data: MenuGenerateRequest, current_user: User) -> MenuResponse:
         week_start = get_current_saturday()
 
+        # Phase 2: Aggregate dietary requirements from all personas
+        household_reqs = await self.persona_service.get_household_requirements(current_user.id)
+        
+        # Phase 2: Fetch actual pantry items
+        pantry_staples = await self.pantry_service.get_staples_for_menu(current_user.id)
+
         user_data = {
             "household_size": current_user.household_size,
-            "diet_type": current_user.diet_type,
-            "allergies": current_user.allergies or [],
-            "pantry_staples": list(
-                set((current_user.pantry_staples or []) + data.use_pantry_items)
-            ),
+            "diet_type": household_reqs.get("diet_type", current_user.diet_type),
+            "allergies": household_reqs.get("allergies", []),
+            "disliked_ingredients": household_reqs.get("disliked_ingredients", []),
+            "pantry_staples": list(set(pantry_staples + data.use_pantry_items)),
             "meal_types": current_user.meal_types or ["breakfast", "lunch", "dinner"],
-            "target_calories": current_user.target_calories or 2000,
+            "target_calories": household_reqs.get("suggested_total_calories") or current_user.target_calories or 2000,
             "macro_targets": current_user.macro_targets,
             "energy_schedule": current_user.energy_schedule,
         }
@@ -132,10 +141,14 @@ class MenuService:
         if not current_meal:
             raise HTTPException(status_code=400, detail="Meal type not found for this day")
 
+        # Phase 2: Use household requirements for swaps too
+        household_reqs = await self.persona_service.get_household_requirements(current_user.id)
+
         user_data = {
-            "diet_type": current_user.diet_type,
-            "allergies": current_user.allergies or [],
-            "target_calories": current_user.target_calories or 2000,
+            "diet_type": household_reqs.get("diet_type", current_user.diet_type),
+            "allergies": household_reqs.get("allergies", []),
+            "disliked_ingredients": household_reqs.get("disliked_ingredients", []),
+            "target_calories": 2000, # Per meal calorie logic is handled later in GeminiService
         }
 
         day_info = {

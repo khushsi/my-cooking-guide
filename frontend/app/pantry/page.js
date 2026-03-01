@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "../../lib/api";
 import styles from "./page.module.css";
 
 export default function PantryPage() {
+    const router = useRouter();
     const [pantry, setPantry] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -70,7 +72,13 @@ export default function PantryPage() {
     return (
         <main className={styles.container}>
             <div className={styles.header}>
-                <h1>My Inventory</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <h1>My Inventory</h1>
+                    <nav style={{ display: 'flex', gap: '15px' }}>
+                        <button className="btn-link" onClick={() => router.push("/calendar")}>Calendar</button>
+                        <button className="btn-link" onClick={() => router.push("/grocery-list")}>Grocery List</button>
+                    </nav>
+                </div>
                 <button className={styles.addButton} onClick={() => alert("Add item modal coming soon!")}>
                     + Add Item
                 </button>

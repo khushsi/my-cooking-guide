@@ -74,28 +74,44 @@ class GroceryListService:
         if not menu.grocery_list:
             return []
 
-        # Simple sync: add items that aren't already there (or just add all as 'from menu')
-        # For now, let's just add all items from the menu that don't exist yet with same name
+        # Smart sync: Only add items that aren't already in the pantry with quantity > 0
+        from app.models.pantry_item import PantryItem
+        pantry_result = await self.db.execute(
+            select(PantryItem.name).where(
+                PantryItem.user_id == current_user.id,
+                PantryItem.quantity > 0
+            )
+        )
+        pantry_names = {name.lower() for name in pantry_result.scalars().all()}
+        
+        # Also avoid duplicates in the grocery list itself
         existing_result = await self.db.execute(
             select(GroceryItem.name).where(GroceryItem.user_id == current_user.id)
         )
-        existing_names = set(existing_result.scalars().all())
+        existing_grocery_names = {name.lower() for name in existing_result.scalars().all()}
 
         new_items = []
         for item_data in menu.grocery_list:
             name = item_data.get("name")
-            if name and name not in existing_names:
-                item = GroceryItem(
-                    id=uuid4(),
-                    user_id=current_user.id,
-                    name=name,
-                    quantity=item_data.get("quantity"),
-                    category=item_data.get("category"),
-                    is_checked=False,
-                    is_from_menu=True
-                )
-                self.db.add(item)
-                new_items.append(item)
+            if not name:
+                continue
+            
+            name_lower = name.lower()
+            # If item is in pantry or already in grocery list, skip it
+            if name_lower in pantry_names or name_lower in existing_grocery_names:
+                continue
+
+            item = GroceryItem(
+                id=uuid4(),
+                user_id=current_user.id,
+                name=name,
+                quantity=item_data.get("quantity"),
+                category=item_data.get("category"),
+                is_checked=False,
+                is_from_menu=True
+            )
+            self.db.add(item)
+            new_items.append(item)
         
         await self.db.flush()
         return await self.get_grocery_list(current_user)

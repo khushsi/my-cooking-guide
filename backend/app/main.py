@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import engine, Base
-from app.routers import auth, onboarding, menu, feedback, nutrition, personas, pantry
+from app.routers import auth, onboarding, menu, feedback, nutrition, personas, pantry, grocery
 
 settings = get_settings()
 
@@ -55,6 +55,7 @@ app.include_router(personas.router)
 app.include_router(feedback.router)
 app.include_router(nutrition.router)
 app.include_router(pantry.router)
+app.include_router(grocery.router)
 
 
 @app.get("/api/health")

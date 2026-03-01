@@ -8,6 +8,11 @@ def build_weekly_generation_prompt(user_data: dict, feedback_history: list) -> s
     pantry = ", ".join(user_data.get("pantry_staples", [])) or "Standard pantry staples"
     meal_types = ", ".join(user_data.get("meal_types", ["breakfast", "lunch", "dinner"]))
     energy_schedule = user_data.get("energy_schedule", {})
+    
+    medical_conds = ", ".join(user_data.get("medical_conditions", [])) or "None"
+    loved_ingreds = ", ".join(user_data.get("loved_ingredients", [])) or "None"
+    spice_tol = user_data.get("spice_tolerance", "medium")
+
 
     energy_section = ""
     if energy_schedule:
@@ -43,10 +48,13 @@ Generate a strictly formatted, nutritionally balanced 7-day meal plan starting f
 ABSOLUTE CONSTRAINTS:
 1. ALLERGIES: Strictly exclude any of these ingredients: [{allergies}]
 2. DIETARY RESTRICTIONS: Adhere strictly to "{user_data.get('diet_type', 'omnivore')}" diet.
-3. CALORIES: Daily total should be approximately {user_data.get('target_calories', 2000)} calories (+/- 10%).
-4. ENERGY: Respect the energy schedule. Low-energy days must use weekend-prepped ingredients or take under 15 minutes of active cooking.
-5. MEAL TYPES: Generate meals only for these meal types: [{meal_types}]
-6. HOUSEHOLD: Portions for {user_data.get('household_size', 1)} people.
+3. MEDICAL CONDITIONS: Bear in mind the following medical conditions for the household: [{medical_conds}]
+4. CALORIES: Daily total for the ENTIRE household combined should be approximately {user_data.get('target_calories', 2000)} calories (+/- 10%).
+5. ENERGY: Respect the energy schedule. Low-energy days must use weekend-prepped ingredients or take under 15 minutes of active cooking.
+6. MEAL TYPES: Generate meals only for these meal types: [{meal_types}]
+7. HOUSEHOLD: Portions for {user_data.get('household_size', 1)} people.
+8. SPICE TOLERANCE: Max spice level should be {spice_tol}.
+9. LOVED INGREDIENTS: Try to incorporate these if possible: [{loved_ingreds}]
 
 {energy_section}
 

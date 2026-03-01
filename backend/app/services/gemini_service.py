@@ -277,3 +277,44 @@ async def _persist_recipe(db: AsyncSession, meal_data: dict, diet_type: str = "o
     )
     db.add(new_recipe)
     await db.flush()
+
+
+async def analyze_fridge_image(image_bytes: bytes, mime_type: str) -> list[dict]:
+    """Parse an image of a fridge/pantry to extract ingredients using Gemini 1.5 Pro vision."""
+    prompt = (
+        "You are an expert culinary assistant. I have provided an image of a fridge or pantry. "
+        "Analyze the image and list all the recognizable food ingredients. "
+        "For each item, return a JSON object with: "
+        "'name' (string, standard name like 'Milk' or 'Eggs'), "
+        "'category' (string, e.g., 'Dairy', 'Produce', 'Meat', 'Pantry'), "
+        "'quantity' (float, best guess or default to 1.0), "
+        "'unit' (string, e.g., 'item', 'lb', 'gallon', 'oz'). "
+        "Return ONLY a JSON array containing these objects. If you cannot identify anything, return an empty array []."
+    )
+
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-pro",
+        generation_config=genai.GenerationConfig(
+            response_mime_type="application/json",
+            temperature=0.2,
+        ),
+    )
+    
+    image_part = {
+        "mime_type": mime_type,
+        "data": image_bytes
+    }
+
+    try:
+        response = model.generate_content([prompt, image_part])
+        text = response.text
+        start = text.find("[")
+        end = text.rfind("]") + 1
+        if start != -1 and end > start:
+            return json.loads(text[start:end])
+        else:
+            items = json.loads(text)
+            return items if isinstance(items, list) else []
+    except Exception as e:
+        print(f"Failed to analyze fridge image: {e}")
+        return []

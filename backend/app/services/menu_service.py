@@ -32,10 +32,13 @@ class MenuService:
         pantry_staples = await self.pantry_service.get_staples_for_menu(current_user.id)
 
         user_data = {
-            "household_size": current_user.household_size,
+            "household_size": household_reqs.get("persona_count") or current_user.household_size,
             "diet_type": household_reqs.get("diet_type", current_user.diet_type),
             "allergies": household_reqs.get("allergies", []),
             "disliked_ingredients": household_reqs.get("disliked_ingredients", []),
+            "medical_conditions": household_reqs.get("medical_conditions", []),
+            "loved_ingredients": household_reqs.get("loved_ingredients", []),
+            "spice_tolerance": household_reqs.get("spice_tolerance", "medium"),
             "pantry_staples": list(set(pantry_staples + data.use_pantry_items)),
             "meal_types": current_user.meal_types or ["breakfast", "lunch", "dinner"],
             "target_calories": household_reqs.get("suggested_total_calories") or current_user.target_calories or 2000,
@@ -145,9 +148,13 @@ class MenuService:
         household_reqs = await self.persona_service.get_household_requirements(current_user.id)
 
         user_data = {
+            "household_size": household_reqs.get("persona_count") or current_user.household_size,
             "diet_type": household_reqs.get("diet_type", current_user.diet_type),
             "allergies": household_reqs.get("allergies", []),
             "disliked_ingredients": household_reqs.get("disliked_ingredients", []),
+            "medical_conditions": household_reqs.get("medical_conditions", []),
+            "loved_ingredients": household_reqs.get("loved_ingredients", []),
+            "spice_tolerance": household_reqs.get("spice_tolerance", "medium"),
             "target_calories": 2000, # Per meal calorie logic is handled later in GeminiService
         }
 

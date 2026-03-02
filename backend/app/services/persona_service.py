@@ -26,6 +26,9 @@ class PersonaService:
             disliked_ingredients=data.disliked_ingredients,
             loved_ingredients=data.loved_ingredients,
             spice_tolerance=data.spice_tolerance,
+            preferred_protein_sources=getattr(data, "preferred_protein_sources", []),
+            avoided_protein_sources=getattr(data, "avoided_protein_sources", []),
+            sneak_in_protein=getattr(data, "sneak_in_protein", False),
             target_calories=data.target_calories,
             height_cm=data.height_cm,
             weight_kg=data.weight_kg,
@@ -69,7 +72,8 @@ class PersonaService:
         Aggregate dietary requirements from all personas in the household.
         Returns a dict with combined allergies, diet type (most restrictive),
         combined dislikes, combined medical conditions, loved ingredients,
-        and min spice tolerance.
+        min spice tolerance, preferred_protein_sources, avoided_protein_sources,
+        and sneak_in_protein.
         """
         personas = await self.get_all_personas(user_id)
         if not personas:
@@ -79,6 +83,9 @@ class PersonaService:
         combined_dislikes = set()
         combined_medical_conditions = set()
         combined_loved = set()
+        combined_pref_protein = set()
+        combined_avoid_protein = set()
+        any_sneak_protein = False
         
         diet_priority = {"vegan": 4, "vegetarian": 3, "pescatarian": 2, "omnivore": 1}
         spice_priority = {"none": 0, "mild": 1, "medium": 2, "hot": 3, "extra_hot": 4}
@@ -98,6 +105,12 @@ class PersonaService:
                 combined_medical_conditions.update(p.medical_conditions)
             if p.loved_ingredients:
                 combined_loved.update(p.loved_ingredients)
+            if p.preferred_protein_sources:
+                combined_pref_protein.update(p.preferred_protein_sources)
+            if p.avoided_protein_sources:
+                combined_avoid_protein.update(p.avoided_protein_sources)
+            if p.sneak_in_protein:
+                any_sneak_protein = True
             
             p_diet = (p.diet_type or "omnivore").lower()
             if diet_priority.get(p_diet, 0) > diet_priority.get(most_restrictive_diet, 0):
@@ -122,6 +135,9 @@ class PersonaService:
             "disliked_ingredients": list(combined_dislikes),
             "medical_conditions": list(combined_medical_conditions),
             "loved_ingredients": list(combined_loved),
+            "preferred_protein_sources": list(combined_pref_protein),
+            "avoided_protein_sources": list(combined_avoid_protein),
+            "sneak_in_protein": any_sneak_protein,
             "suggested_total_calories": total_calories if total_calories > 0 else None,
             "persona_count": persona_count
         }

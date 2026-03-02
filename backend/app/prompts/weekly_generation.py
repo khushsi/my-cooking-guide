@@ -13,6 +13,10 @@ def build_weekly_generation_prompt(user_data: dict, feedback_history: list) -> s
     loved_ingreds = ", ".join(user_data.get("loved_ingredients", [])) or "None"
     spice_tol = user_data.get("spice_tolerance", "medium")
 
+    pref_protein = ", ".join(user_data.get("preferred_protein_sources", [])) or "No explicit preference"
+    avoid_protein = ", ".join(user_data.get("avoided_protein_sources", [])) or "None"
+    sneak_protein = user_data.get("sneak_in_protein", False)
+
 
     energy_section = ""
     if energy_schedule:
@@ -42,6 +46,10 @@ def build_weekly_generation_prompt(user_data: dict, feedback_history: list) -> s
             + "\n".join(feedback_lines)
         )
 
+    sneak_protein_instruction = ""
+    if sneak_protein:
+        sneak_protein_instruction = "\nSNEAK IN PROTEIN PROTOCOL: The user has requested to actively hide or sneak in extra protein. You MUST actively find ways to blend or hide high-protein vegetarian ingredients (like silken tofu, white beans, nutritional yeast, hemp hearts) into standard meals, sauces, and smoothies."
+
     return f"""You are a highly analytical culinary AI for "My Cooking Guide."
 Generate a strictly formatted, nutritionally balanced 7-day meal plan starting from Saturday.
 
@@ -49,12 +57,16 @@ ABSOLUTE CONSTRAINTS:
 1. ALLERGIES: Strictly exclude any of these ingredients: [{allergies}]
 2. DIETARY RESTRICTIONS: Adhere strictly to "{user_data.get('diet_type', 'omnivore')}" diet.
 3. MEDICAL CONDITIONS: Bear in mind the following medical conditions for the household: [{medical_conds}]
-4. CALORIES: Daily total for the ENTIRE household combined should be approximately {user_data.get('target_calories', 2000)} calories (+/- 10%).
-5. ENERGY: Respect the energy schedule. Low-energy days must use weekend-prepped ingredients or take under 15 minutes of active cooking.
-6. MEAL TYPES: Generate meals only for these meal types: [{meal_types}]
-7. HOUSEHOLD: Portions for {user_data.get('household_size', 1)} people.
-8. SPICE TOLERANCE: Max spice level should be {spice_tol}.
-9. LOVED INGREDIENTS: Try to incorporate these if possible: [{loved_ingreds}]
+4. PROTEIN PREFERENCES: 
+   - Strongly PRIORITIZE these protein sources (if applicable to diet): [{pref_protein}]
+   - AVOID these protein sources: [{avoid_protein}]
+5. CALORIES: Daily total for the ENTIRE household combined should be approximately {user_data.get('target_calories', 2000)} calories (+/- 10%).
+6. ENERGY: Respect the energy schedule. Low-energy days must use weekend-prepped ingredients or take under 15 minutes of active cooking.
+7. MEAL TYPES: Generate meals only for these meal types: [{meal_types}]
+8. HOUSEHOLD: Portions for {user_data.get('household_size', 1)} people.
+9. SPICE TOLERANCE: Max spice level should be {spice_tol}.
+10. LOVED INGREDIENTS: Try to incorporate these if possible: [{loved_ingreds}]
+{sneak_protein_instruction}
 
 {energy_section}
 
@@ -104,7 +116,7 @@ Return a JSON object with this exact structure (you MUST provide weight_g for ev
     {{
       "name": "Asparagus",
       "quantity": "2 bunches",
-      "category": "produce",
+      "category": "Produce", # MUST be one of: Produce, Dairy & Eggs, Meat & Seafood, Pantry, Frozen, Bakery
       "already_have": false
     }}
   ],

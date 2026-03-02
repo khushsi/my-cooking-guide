@@ -8,10 +8,17 @@ from app.models.feedback import MealFeedback
 from app.schemas.menu import (
     MenuGenerateRequest,
     MenuSwapRequest,
+    MenuSwapIngredientRequest,
+    MenuBoostMacroRequest,
     MenuResponse,
     MenuListResponse,
 )
-from app.services.gemini_service import generate_weekly_menu, swap_single_meal
+from app.services.gemini_service import (
+    generate_weekly_menu,
+    swap_single_meal,
+    swap_single_ingredient,
+    suggest_macro_boosters
+)
 from app.services.persona_service import PersonaService
 from app.services.pantry_service import PantryService
 from app.utils.date_utils import get_current_saturday
@@ -177,6 +184,54 @@ class MenuService:
 
         await self.db.flush()
         return MenuResponse.model_validate(menu)
+
+    async def swap_ingredient(self, menu_id: str, data: MenuSwapIngredientRequest, current_user: User) -> list[dict]:
+        menu = await self.get_menu_by_id(menu_id, current_user)
+        days = menu.menu_data if isinstance(menu.menu_data, list) else menu.menu_data.get("days", [])
+        if data.day_index < 0 or data.day_index >= len(days):
+            raise HTTPException(status_code=400, detail="Invalid day index")
+
+        day = days[data.day_index]
+        meals = day.get("meals", {})
+        current_meal = meals.get(data.meal_type)
+        if not current_meal:
+            raise HTTPException(status_code=400, detail="Meal type not found")
+
+        household_reqs = await self.persona_service.get_household_requirements(current_user.id)
+        user_data = {
+            "diet_type": household_reqs.get("diet_type", current_user.diet_type),
+            "allergies": household_reqs.get("allergies", []),
+            "medical_conditions": household_reqs.get("medical_conditions", []),
+            "loved_ingredients": household_reqs.get("loved_ingredients", []),
+            "spice_tolerance": household_reqs.get("spice_tolerance", "medium"),
+            "preferred_protein_sources": household_reqs.get("preferred_protein_sources", []),
+            "avoided_protein_sources": household_reqs.get("avoided_protein_sources", []),
+        }
+
+        return await swap_single_ingredient(current_meal, data.ingredient_name, user_data, data.reason)
+
+    async def boost_macro(self, menu_id: str, data: MenuBoostMacroRequest, current_user: User) -> list[dict]:
+        menu = await self.get_menu_by_id(menu_id, current_user)
+        days = menu.menu_data if isinstance(menu.menu_data, list) else menu.menu_data.get("days", [])
+        if data.day_index < 0 or data.day_index >= len(days):
+            raise HTTPException(status_code=400, detail="Invalid day index")
+
+        day = days[data.day_index]
+        meals = day.get("meals", {})
+        current_meal = meals.get(data.meal_type)
+        if not current_meal:
+            raise HTTPException(status_code=400, detail="Meal type not found")
+
+        household_reqs = await self.persona_service.get_household_requirements(current_user.id)
+        user_data = {
+            "diet_type": household_reqs.get("diet_type", current_user.diet_type),
+            "allergies": household_reqs.get("allergies", []),
+            "medical_conditions": household_reqs.get("medical_conditions", []),
+            "preferred_protein_sources": household_reqs.get("preferred_protein_sources", []),
+            "avoided_protein_sources": household_reqs.get("avoided_protein_sources", []),
+        }
+
+        return await suggest_macro_boosters(current_meal, data.target_macro, user_data)
 
     async def accept_menu(self, menu_id: str, current_user: User) -> dict:
         menu = await self.get_menu_by_id(menu_id, current_user)

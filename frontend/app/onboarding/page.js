@@ -24,6 +24,9 @@ export default function OnboardingPage() {
     const [dietType, setDietType] = useState("omnivore");
     const [allergies, setAllergies] = useState([]);
     const [customAllergy, setCustomAllergy] = useState("");
+    const [preferredProteins, setPreferredProteins] = useState([]);
+    const [avoidedProteins, setAvoidedProteins] = useState([]);
+    const [sneakInProtein, setSneakInProtein] = useState(false);
     const [mealTypes, setMealTypes] = useState(["breakfast", "lunch", "dinner"]);
     const [pantryItems, setPantryItems] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -42,6 +45,9 @@ export default function OnboardingPage() {
                 setDietType(savedData.dietType);
             }
             if (savedData.allergies) setAllergies(savedData.allergies);
+            if (savedData.preferredProteins) setPreferredProteins(savedData.preferredProteins);
+            if (savedData.avoidedProteins) setAvoidedProteins(savedData.avoidedProteins);
+            if (savedData.sneakInProtein !== undefined) setSneakInProtein(savedData.sneakInProtein);
             if (savedData.mealTypes) setMealTypes(savedData.mealTypes);
             if (savedData.pantryItems) setPantryItems(savedData.pantryItems);
         }
@@ -51,9 +57,10 @@ export default function OnboardingPage() {
     useEffect(() => {
         storage.session.set("onboarding_step", step);
         storage.session.set("onboarding_data", {
-            selectedPersonaId, householdSize, dietType, allergies, mealTypes, pantryItems
+            selectedPersonaId, householdSize, dietType, allergies, preferredProteins, avoidedProteins, sneakInProtein, mealTypes, pantryItems
         });
-    }, [step, selectedPersonaId, householdSize, dietType, allergies, mealTypes, pantryItems]);
+    }, [step, selectedPersonaId, householdSize, dietType, allergies, preferredProteins, avoidedProteins, sneakInProtein, mealTypes, pantryItems]);
+
 
     useEffect(() => {
         api.getPersonaTemplates()
@@ -134,6 +141,9 @@ export default function OnboardingPage() {
                 allergies,
                 pantry_staples: pantryItems,
                 meal_types: mealTypes,
+                preferred_protein_sources: preferredProteins,
+                avoided_protein_sources: avoidedProteins,
+                sneak_in_protein: sneakInProtein,
             });
 
             storage.session.clear();
@@ -171,7 +181,17 @@ export default function OnboardingPage() {
                     mealTypes={mealTypes} toggleMealType={toggleMealType}
                     allergies={allergies} toggleAllergy={toggleAllergy}
                     customAllergy={customAllergy} setCustomAllergy={setCustomAllergy}
-                    addCustomAllergy={addCustomAllergy} onNext={() => setStep(2)}
+                    addCustomAllergy={addCustomAllergy}
+                    preferredProteins={preferredProteins} togglePreferredProtein={(p) => {
+                        setPreferredProteins(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+                        if (avoidedProteins.includes(p)) setAvoidedProteins(prev => prev.filter(x => x !== p));
+                    }}
+                    avoidedProteins={avoidedProteins} toggleAvoidedProtein={(p) => {
+                        setAvoidedProteins(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
+                        if (preferredProteins.includes(p)) setPreferredProteins(prev => prev.filter(x => x !== p));
+                    }}
+                    sneakInProtein={sneakInProtein} setSneakInProtein={setSneakInProtein}
+                    onNext={() => setStep(2)}
                 />
             )}
 

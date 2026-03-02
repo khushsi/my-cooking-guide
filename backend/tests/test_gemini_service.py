@@ -13,7 +13,11 @@ async def test_correct_meal_macros_cache_hit(db):
         protein_g=20.0,
         fat_g=5.0,
         carbs_g=0.0,
-        calories=125.0
+        calories=125.0,
+        vitamin_c_mg=10.0,
+        iron_mg=2.0,
+        calcium_mg=50.0,
+        sodium_mg=200.0
     )
     db.add(cached)
     await db.commit()
@@ -36,6 +40,7 @@ async def test_correct_meal_macros_cache_hit(db):
         assert result["protein_g"] == 40.0
         assert result["fat_g"] == 10.0
         assert result["calories"] == 250
+        assert result["vitamin_c_mg"] == 20.0
 
 @pytest.mark.asyncio
 async def test_correct_meal_macros_cache_miss(db):
@@ -48,13 +53,17 @@ async def test_correct_meal_macros_cache_miss(db):
     }
 
     # Mock USDA responses
-    mock_search = {"foods": [{"fdcId": 123}]}
+    mock_search = {"foods": [{"fdcId": 123, "description": "new apple"}]}
     mock_details = {
         "foodNutrients": [
             {"nutrient": {"name": "Protein"}, "amount": 0.3},
             {"nutrient": {"name": "Total lipid (fat)"}, "amount": 0.2},
             {"nutrient": {"name": "Carbohydrate, by difference"}, "amount": 14.0},
             {"nutrient": {"name": "Energy"}, "amount": 52.0},
+            {"nutrient": {"name": "Vitamin C, total ascorbic acid"}, "amount": 4.6},
+            {"nutrient": {"name": "Iron, Fe"}, "amount": 0.12},
+            {"nutrient": {"name": "Calcium, Ca"}, "amount": 6.0},
+            {"nutrient": {"name": "Sodium, Na"}, "amount": 1.0},
         ]
     }
 
@@ -79,3 +88,5 @@ async def test_correct_meal_macros_cache_miss(db):
         cached = cache_result.scalar_one()
         assert cached.calories == 52.0
         assert cached.protein_g == 0.3
+        assert cached.vitamin_c_mg == 4.6
+        assert cached.iron_mg == 0.12

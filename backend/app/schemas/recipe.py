@@ -21,6 +21,10 @@ class RecipeBase(BaseModel):
     protein_g: float | None = None
     carbs_g: float | None = None
     fat_g: float | None = None
+    vitamin_c_mg: float | None = None
+    iron_mg: float | None = None
+    calcium_mg: float | None = None
+    sodium_mg: float | None = None
     ingredients: list[RecipeIngredient]
     instructions: list[str] = []
     prep_time_minutes: int = 0

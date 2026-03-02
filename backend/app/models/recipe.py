@@ -26,6 +26,10 @@ class Recipe(Base):
     protein_g: Mapped[float] = mapped_column(Float, nullable=True)
     carbs_g: Mapped[float] = mapped_column(Float, nullable=True)
     fat_g: Mapped[float] = mapped_column(Float, nullable=True)
+    vitamin_c_mg: Mapped[float] = mapped_column(Float, nullable=True)
+    iron_mg: Mapped[float] = mapped_column(Float, nullable=True)
+    calcium_mg: Mapped[float] = mapped_column(Float, nullable=True)
+    sodium_mg: Mapped[float] = mapped_column(Float, nullable=True)
     
     # Recipe details
     ingredients: Mapped[list[dict]] = mapped_column(JSONB)  # Detailed list with amounts

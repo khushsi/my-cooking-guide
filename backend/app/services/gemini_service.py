@@ -3,12 +3,15 @@
 import json
 import asyncio
 import google.generativeai as genai
+from rapidfuzz import process, fuzz
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.config import get_settings
 from app.prompts.weekly_generation import build_weekly_generation_prompt
 from app.prompts.swap_prompt import build_swap_prompt
+from app.prompts.ingredient_swap import build_ingredient_swap_prompt
+from app.prompts.macro_boost import build_macro_boost_prompt
 from app.services.usda_service import usda_service
 from app.schemas.menu import WeeklyMenuSchema, MealSchema
 from app.models.recipe import Recipe
@@ -27,6 +30,10 @@ async def _correct_meal_macros(meal_data: dict, db: AsyncSession) -> dict:
     total_pro: float = 0.0
     total_fat: float = 0.0
     total_carb: float = 0.0
+    total_vit_c: float = 0.0
+    total_iron: float = 0.0
+    total_calcium: float = 0.0
+    total_sodium: float = 0.0
     
     ingredients = meal_data.get("ingredients", [])
     
@@ -51,6 +58,10 @@ async def _correct_meal_macros(meal_data: dict, db: AsyncSession) -> dict:
                 total_fat += cached.fat_g * multiplier
                 total_carb += cached.carbs_g * multiplier
                 total_cal += cached.calories * multiplier
+                total_vit_c += (cached.vitamin_c_mg or 0.0) * multiplier
+                total_iron += (cached.iron_mg or 0.0) * multiplier
+                total_calcium += (cached.calcium_mg or 0.0) * multiplier
+                total_sodium += (cached.sodium_mg or 0.0) * multiplier
                 continue
 
             # 2. Cache Miss: Query USDA
@@ -59,11 +70,21 @@ async def _correct_meal_macros(meal_data: dict, db: AsyncSession) -> dict:
             if not foods:
                 continue
                 
-            top_fdc_id = foods[0].get("fdcId")
+            # Fuzzy match top 5 to find best FdcId
+            top_candidates = {food["description"].lower(): food["fdcId"] for food in foods[:5]}
+            best_match = process.extractOne(str(name).lower(), list(top_candidates.keys()), scorer=fuzz.WRatio)
+            
+            if best_match:
+                matched_desc = best_match[0]
+                top_fdc_id = top_candidates[matched_desc]
+            else:
+                top_fdc_id = foods[0].get("fdcId")
+                
             details = await usda_service.get_food_details(top_fdc_id)
             
             # Base data per 100g
             base_pro, base_fat, base_carb, base_cal = 0.0, 0.0, 0.0, 0.0
+            base_vit_c, base_iron, base_calcium, base_sodium = 0.0, 0.0, 0.0, 0.0
             nutrients = details.get("foodNutrients", [])
             
             for n in nutrients:
@@ -73,8 +94,12 @@ async def _correct_meal_macros(meal_data: dict, db: AsyncSession) -> dict:
                 
                 if n_name == "Protein": base_pro = amount
                 elif n_name == "Total lipid (fat)": base_fat = amount
-                elif n_name == "Carbohydrate, by difference": base_carb = amount
+                elif "Carbohydrate" in n_name: base_carb = amount
                 elif n_name == "Energy": base_cal = amount
+                elif "Vitamin C" in n_name: base_vit_c = amount
+                elif "Iron" in n_name: base_iron = amount
+                elif "Calcium" in n_name: base_calcium = amount
+                elif "Sodium" in n_name: base_sodium = amount
 
             # Save to Cache
             new_cache = CachedIngredient(
@@ -82,7 +107,11 @@ async def _correct_meal_macros(meal_data: dict, db: AsyncSession) -> dict:
                 protein_g=base_pro,
                 fat_g=base_fat,
                 carbs_g=base_carb,
-                calories=base_cal
+                calories=base_cal,
+                vitamin_c_mg=base_vit_c,
+                iron_mg=base_iron,
+                calcium_mg=base_calcium,
+                sodium_mg=base_sodium
             )
             db.add(new_cache)
             await db.flush() # Keep it in transaction
@@ -93,6 +122,10 @@ async def _correct_meal_macros(meal_data: dict, db: AsyncSession) -> dict:
             total_fat += base_fat * multiplier
             total_carb += base_carb * multiplier
             total_cal += base_cal * multiplier
+            total_vit_c += base_vit_c * multiplier
+            total_iron += base_iron * multiplier
+            total_calcium += base_calcium * multiplier
+            total_sodium += base_sodium * multiplier
 
         except Exception as e:
             print(f"Correction failed for '{name}': {e}")
@@ -100,10 +133,15 @@ async def _correct_meal_macros(meal_data: dict, db: AsyncSession) -> dict:
 
     # Overwrite the Gemini guesses if we successfully calculated anything
     if total_cal > 0:
-        meal_data["calories"] = int(round(total_cal))
-        meal_data["protein_g"] = round(total_pro, 1)
-        meal_data["fat_g"] = round(total_fat, 1)
-        meal_data["carbs_g"] = round(total_carb, 1)
+        meal_data["calories"] = int(round(float(total_cal)))
+        meal_data["protein_g"] = float(round(float(total_pro), 1))
+        meal_data["fat_g"] = float(round(float(total_fat), 1))
+        meal_data["carbs_g"] = float(round(float(total_carb), 1))
+        meal_data["vitamin_c_mg"] = float(round(float(total_vit_c), 1))
+        meal_data["iron_mg"] = float(round(float(total_iron), 1))
+        meal_data["calcium_mg"] = float(round(float(total_calcium), 1))
+        meal_data["sodium_mg"] = float(round(float(total_sodium), 1))
+
         
     return meal_data
 
@@ -239,6 +277,58 @@ async def swap_single_meal(
     await _persist_recipe(db, meal_data, diet_type=user_data.get("diet_type", "omnivore"))
 
     return meal_data
+
+
+async def swap_single_ingredient(
+    meal: dict,
+    ingredient_name: str,
+    user_data: dict,
+    reason: str | None = None,
+) -> list[dict]:
+    """Suggest 3 healthy swaps for a single ingredient."""
+    prompt = build_ingredient_swap_prompt(meal, ingredient_name, user_data, reason)
+
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        generation_config=genai.GenerationConfig(
+            response_mime_type="application/json",
+            temperature=0.8,
+        ),
+    )
+
+    response = model.generate_content(prompt)
+    try:
+        data = json.loads(response.text)
+        return data.get("suggestions", [])
+    except Exception as e:
+        print(f"Failed to parse AI ingredient swap: {e}")
+        return []
+
+
+async def suggest_macro_boosters(
+    meal: dict,
+    target_macro: str,
+    user_data: dict,
+) -> list[dict]:
+    """Suggest 3 macro boosters (e.g., high protein add-ons) for a meal."""
+    prompt = build_macro_boost_prompt(meal, target_macro, user_data)
+
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        generation_config=genai.GenerationConfig(
+            response_mime_type="application/json",
+            temperature=0.7,
+        ),
+    )
+
+    response = model.generate_content(prompt)
+    try:
+        data = json.loads(response.text)
+        return data.get("suggestions", [])
+    except Exception as e:
+        print(f"Failed to parse AI macro boost: {e}")
+        return []
+
 
 
 async def _persist_recipe(db: AsyncSession, meal_data: dict, diet_type: str = "omnivore") -> None:

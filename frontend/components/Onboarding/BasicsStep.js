@@ -22,12 +22,21 @@ const COMMON_ALLERGIES = [
     "Soy", "Fish", "Shellfish", "Sesame", "Gluten",
 ];
 
+const PROTEIN_OPTIONS = [
+    "Tofu", "Paneer", "Seitan", "Lentils", "Chickpeas",
+    "Black Beans", "Edamame", "Quinoa", "Hemp Hearts", "Eggs",
+    "Chicken", "Fish", "Beef"
+];
+
 export default function BasicsStep({
     householdSize, setHouseholdSize,
     dietType, setDietType,
     mealTypes, toggleMealType,
     allergies, toggleAllergy,
     customAllergy, setCustomAllergy, addCustomAllergy,
+    preferredProteins, togglePreferredProtein,
+    avoidedProteins, toggleAvoidedProtein,
+    sneakInProtein, setSneakInProtein,
     onNext
 }) {
     return (
@@ -109,6 +118,67 @@ export default function BasicsStep({
                         onKeyDown={(e) => e.key === "Enter" && addCustomAllergy()}
                     />
                     <button className="btn btn-secondary" onClick={addCustomAllergy}>Add</button>
+                </div>
+            </div>
+
+            <div className={styles.field}>
+                <label className={styles.label}>Advanced Nutrition: Protein Goals</label>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", padding: "1rem", backgroundColor: "rgba(108, 92, 231, 0.05)", borderRadius: "12px", border: "1px solid rgba(108, 92, 231, 0.2)" }}>
+                    <div>
+                        <div style={{ fontWeight: 600, color: "#2d3436" }}>✨ Sneak in Protein</div>
+                        <div style={{ fontSize: "0.85rem", color: "#636e72", marginTop: "4px" }}>AI will actively blend high-protein ingredients into sauces & smoothies.</div>
+                    </div>
+                    <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+                        <div style={{ position: "relative" }}>
+                            <input
+                                type="checkbox"
+                                checked={sneakInProtein}
+                                onChange={(e) => setSneakInProtein(e.target.checked)}
+                                style={{ opacity: 0, width: 0, height: 0 }}
+                                aria-label="Toggle Sneak in Protein"
+                            />
+                            <div style={{
+                                width: "44px", height: "24px",
+                                backgroundColor: sneakInProtein ? "#6c5ce7" : "#dfe6e9",
+                                borderRadius: "34px", transition: "0.4s",
+                                display: "flex", alignItems: "center", padding: "2px"
+                            }}>
+                                <div style={{
+                                    width: "20px", height: "20px",
+                                    backgroundColor: "white", borderRadius: "50%",
+                                    transition: "0.4s", transform: sneakInProtein ? "translateX(20px)" : "none"
+                                }} />
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <label className={styles.label} style={{ fontSize: "0.9rem", color: "#636e72" }}>Love these proteins (Click to prioritize):</label>
+                <div className={styles.chipRow} style={{ marginBottom: "1rem" }}>
+                    {PROTEIN_OPTIONS.map((p) => (
+                        <button
+                            key={`pref-${p}`}
+                            className={`chip ${preferredProteins.includes(p) ? "active" : ""}`}
+                            style={preferredProteins.includes(p) ? { backgroundColor: "#00b894", color: "white", borderColor: "#00b894" } : {}}
+                            onClick={() => togglePreferredProtein(p)}
+                        >
+                            {preferredProteins.includes(p) ? "✓ " : ""}{p}
+                        </button>
+                    ))}
+                </div>
+
+                <label className={styles.label} style={{ fontSize: "0.9rem", color: "#636e72" }}>Avoid these proteins (Click to ban):</label>
+                <div className={styles.chipRow}>
+                    {PROTEIN_OPTIONS.map((p) => (
+                        <button
+                            key={`avoid-${p}`}
+                            className={`chip ${avoidedProteins.includes(p) ? "active" : ""}`}
+                            style={avoidedProteins.includes(p) ? { backgroundColor: "#d63031", color: "white", borderColor: "#d63031" } : {}}
+                            onClick={() => toggleAvoidedProtein(p)}
+                        >
+                            {avoidedProteins.includes(p) ? "× " : ""}{p}
+                        </button>
+                    ))}
                 </div>
             </div>
 

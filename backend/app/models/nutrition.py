@@ -10,6 +10,13 @@ class CachedIngredient(Base):
     protein_g = Column(Float, nullable=False)
     carbs_g = Column(Float, nullable=False)
     fat_g = Column(Float, nullable=False)
+    
+    # Micronutrients
+    vitamin_c_mg = Column(Float, default=0.0)
+    iron_mg = Column(Float, default=0.0)
+    calcium_mg = Column(Float, default=0.0)
+    sodium_mg = Column(Float, default=0.0)
+    
     last_updated = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     def __repr__(self):

@@ -69,14 +69,35 @@ export default function GroceryListPage() {
     };
 
     // Group items by category
+    // Group items by category
     const groupedItems = items.reduce((acc, item) => {
-        const cat = item.category || "General";
+        // Capitalize category safely
+        let cat = item.category ? item.category.trim() : "General";
+        cat = cat.charAt(0).toUpperCase() + cat.slice(1);
+
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(item);
         return acc;
     }, {});
 
-    const categories = Object.keys(groupedItems).sort();
+    const aisleOrder = [
+        "Produce",
+        "Bakery",
+        "Meat & Seafood",
+        "Dairy & Eggs",
+        "Pantry",
+        "Frozen",
+        "General"
+    ];
+
+    const categories = Object.keys(groupedItems).sort((a, b) => {
+        const indexA = aisleOrder.indexOf(a);
+        const indexB = aisleOrder.indexOf(b);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+    });
 
     if (loading) return <div className={styles.loading}>Preparing your shopping list...</div>;
 

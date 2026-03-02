@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Query
+from uuid import UUID
+from fastapi import APIRouter, Depends, Query, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -7,10 +8,13 @@ from app.routers.auth import get_current_user
 from app.schemas.menu import (
     MenuGenerateRequest,
     MenuSwapRequest,
+    MenuSwapIngredientRequest,
+    MenuBoostMacroRequest,
     MenuResponse,
     MenuListResponse,
 )
 from app.services.menu_service import MenuService
+from app.services.preference_service import background_evolve_persona
 
 router = APIRouter(prefix="/api/menu", tags=["menu"])
 
@@ -62,14 +66,44 @@ async def get_menu(
 
 @router.post("/{menu_id}/swap", response_model=MenuResponse)
 async def swap_meal(
-    menu_id: str,
+    menu_id: UUID,
     data: MenuSwapRequest,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Swap a single meal in an existing menu using Gemini Flash."""
+    """Swap a specific meal in a menu."""
     menu_service = MenuService(db)
-    return await menu_service.swap_meal(menu_id, data, current_user)
+    result = await menu_service.swap_meal(str(menu_id), data, current_user)
+    
+    if data.reason:
+        background_tasks.add_task(background_evolve_persona, current_user.id, data.reason)
+        
+    return result
+
+
+@router.post("/{menu_id}/swap-ingredient", response_model=list[dict])
+async def swap_ingredient(
+    menu_id: str,
+    data: MenuSwapIngredientRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Suggest healthy swaps for a single ingredient in a meal."""
+    menu_service = MenuService(db)
+    return await menu_service.swap_ingredient(menu_id, data, current_user)
+
+
+@router.post("/{menu_id}/boost-macro", response_model=list[dict])
+async def boost_macro(
+    menu_id: str,
+    data: MenuBoostMacroRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Suggest add-ons to boost a specific macro (like protein)."""
+    menu_service = MenuService(db)
+    return await menu_service.boost_macro(menu_id, data, current_user)
 
 
 @router.put("/{menu_id}/accept")

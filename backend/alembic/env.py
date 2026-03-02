@@ -24,9 +24,12 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 target_metadata = Base.metadata
 
+from app.config import get_settings
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
-    url = config.get_main_option("sqlalchemy.url")
+    settings = get_settings()
+    url = settings.database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -45,9 +48,13 @@ def do_run_migrations(connection) -> None:
 
 async def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
+    settings = get_settings()
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = settings.database_url
+    
     connectable = AsyncEngine(
         engine_from_config(
-            config.get_section(config.config_ini_section),
+            configuration,
             prefix="sqlalchemy.",
             poolclass=pool.NullPool,
             future=True,

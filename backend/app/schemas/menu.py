@@ -15,6 +15,10 @@ class MealSchema(BaseModel):
     protein_g: float
     carbs_g: float
     fat_g: float
+    vitamin_c_mg: float = 0.0
+    iron_mg: float = 0.0
+    calcium_mg: float = 0.0
+    sodium_mg: float = 0.0
     uses_prepped: list[str] = []  # References to pre-prepped items
 
 
@@ -56,6 +60,19 @@ class MenuSwapRequest(BaseModel):
     day_index: int
     meal_type: str
     reason: str | None = None
+
+
+class MenuSwapIngredientRequest(BaseModel):
+    day_index: int
+    meal_type: str
+    ingredient_name: str
+    reason: str | None = None
+
+
+class MenuBoostMacroRequest(BaseModel):
+    day_index: int
+    meal_type: str
+    target_macro: str = "protein" # e.g., "protein", "healthy_fats"
 
 
 class MenuResponse(BaseModel):

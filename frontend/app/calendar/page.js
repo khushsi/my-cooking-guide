@@ -8,6 +8,9 @@ import styles from "./page.module.css";
 
 import MealCard from "../../components/Calendar/MealCard";
 import SwapModal from "../../components/Calendar/SwapModal";
+import IngredientSwapModal from "../../components/Calendar/IngredientSwapModal";
+import MacroBoostModal from "../../components/Calendar/MacroBoostModal";
+import NutritionSpotlight from "../../components/Calendar/NutritionSpotlight";
 
 export default function CalendarPage() {
     const router = useRouter();
@@ -19,6 +22,14 @@ export default function CalendarPage() {
     const [isModalOpen, setModalOpen] = useState(false);
     const [activeSwap, setActiveSwap] = useState(null); // { dayIndex, mealType, meal }
     const [swapLoading, setSwapLoading] = useState(false);
+
+    const [isIngredientModalOpen, setIngredientModalOpen] = useState(false);
+    const [activeIngredientSwap, setActiveIngredientSwap] = useState(null); // { dayIndex, mealType, ingredientName }
+    const [ingredientOptions, setIngredientOptions] = useState([]);
+
+    const [isBoostModalOpen, setBoostModalOpen] = useState(false);
+    const [activeBoost, setActiveBoost] = useState(null); // { dayIndex, mealType, targetMacro }
+    const [boostOptions, setBoostOptions] = useState([]);
 
     useEffect(() => {
         const token = storage.get("token");
@@ -93,6 +104,87 @@ export default function CalendarPage() {
         }
     };
 
+    const handleIngredientSwapRequest = async (type, meal, dayIndex, ingredientName) => {
+        setActiveIngredientSwap({ dayIndex, mealType: type, ingredientName });
+        setIngredientModalOpen(true);
+        setSwapLoading(true);
+        setIngredientOptions([]);
+
+        try {
+            const menuId = menu.id || "current";
+            const options = await api.swapIngredient(menuId, {
+                day_index: dayIndex,
+                meal_type: type,
+                ingredient_name: ingredientName
+            });
+            setIngredientOptions(options);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSwapLoading(false);
+        }
+    };
+
+    const handleConfirmIngredientSwap = (newName) => {
+        // Optimistic UI update: just rename the ingredient in the local state.
+        // A full recalculation requires hitting the backend, but for UX speed:
+        const newMenu = { ...menu };
+        const meal = newMenu.days[activeIngredientSwap.dayIndex].meals[activeIngredientSwap.mealType];
+
+        meal.ingredients = meal.ingredients.map(ing => {
+            if (typeof ing === 'string' && ing === activeIngredientSwap.ingredientName) return newName;
+            if (ing.name === activeIngredientSwap.ingredientName) return { ...ing, name: newName };
+            return ing;
+        });
+
+        setMenu(newMenu);
+        setIngredientModalOpen(false);
+        setActiveIngredientSwap(null);
+    };
+
+    const handleBoostMacroRequest = async (type, meal, dayIndex, targetMacro) => {
+        setActiveBoost({ dayIndex, mealType: type });
+        setBoostModalOpen(true);
+        setSwapLoading(true);
+        setBoostOptions([]);
+
+        try {
+            const menuId = menu.id || "current";
+            const options = await api.boostMacro(menuId, {
+                day_index: dayIndex,
+                meal_type: type,
+                target_macro: targetMacro
+            });
+            setBoostOptions(options);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setSwapLoading(false);
+        }
+    };
+
+    const handleConfirmBoost = (opt) => {
+        const newMenu = { ...menu };
+        const meal = newMenu.days[activeBoost.dayIndex].meals[activeBoost.mealType];
+
+        // Add the new ingredient
+        meal.ingredients.push({
+            name: opt.name,
+            weight_g: opt.estimated_weight_g || 0,
+            amount: opt.amount_description
+        });
+
+        // Optimistically add protein
+        meal.protein_g = Number((meal.protein_g + (opt.macro_boost_g || 0)).toFixed(1));
+
+        if (!meal.tags) meal.tags = [];
+        if (!meal.tags.includes("High Protein")) meal.tags.push("High Protein");
+
+        setMenu(newMenu);
+        setBoostModalOpen(false);
+        setActiveBoost(null);
+    };
+
     if (loading) {
         return (
             <div className={styles.loaderContainer}>
@@ -154,6 +246,8 @@ export default function CalendarPage() {
                 </div>
             </header>
 
+            <NutritionSpotlight />
+
             <div className={styles.calendarGrid}>
                 {menu.days && menu.days.map((day, idx) => (
                     <div key={day.date || idx} className={styles.dayColumn}>
@@ -171,6 +265,8 @@ export default function CalendarPage() {
                                     type={type}
                                     meal={meal}
                                     onSwap={(t, m) => handleSwapRequest(t, m, idx)}
+                                    onSwapIngredient={(t, ingName) => handleIngredientSwapRequest(t, meal, idx, ingName)}
+                                    onBoostMacro={(t, macro) => handleBoostMacroRequest(t, meal, idx, macro)}
                                     aria-label={`Swap ${type} for ${day.day}`}
                                 />
                             ))}
@@ -201,6 +297,23 @@ export default function CalendarPage() {
                 loading={swapLoading}
                 onClose={() => setModalOpen(false)}
                 onConfirm={handleConfirmSwap}
+            />
+
+            <IngredientSwapModal
+                isOpen={isIngredientModalOpen}
+                ingredient={activeIngredientSwap?.ingredientName}
+                loading={swapLoading}
+                options={ingredientOptions}
+                onClose={() => setIngredientModalOpen(false)}
+                onSelect={handleConfirmIngredientSwap}
+            />
+
+            <MacroBoostModal
+                isOpen={isBoostModalOpen}
+                loading={swapLoading}
+                options={boostOptions}
+                onClose={() => setBoostModalOpen(false)}
+                onSelect={handleConfirmBoost}
             />
         </main>
     );

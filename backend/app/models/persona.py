@@ -34,6 +34,11 @@ class Persona(Base):
     disliked_ingredients: Mapped[list | None] = mapped_column(JSONB, default=list)
     loved_ingredients: Mapped[list | None] = mapped_column(JSONB, default=list)
     spice_tolerance: Mapped[str] = mapped_column(String(50), default="medium")
+    
+    # Advanced Nutrition Preferences
+    preferred_protein_sources: Mapped[list | None] = mapped_column(JSONB, default=list)
+    avoided_protein_sources: Mapped[list | None] = mapped_column(JSONB, default=list)
+    sneak_in_protein: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Goals & Attributes
     target_calories: Mapped[int | None] = mapped_column(Integer, nullable=True)
